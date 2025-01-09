@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,6 +17,8 @@ public class Main {
         ServerSocket serv = new ServerSocket(port);
         Socket s2 = serv.accept();
         System.out.println("Server Ready");
+
+        ServerSocket servDonnee = null;
 
         InputStream input = s2.getInputStream();
         OutputStream output = s2.getOutputStream();
@@ -55,10 +58,12 @@ public class Main {
             }
         }
 
-        str = scanner.nextLine();
-        System.out.println(str);
+       
 
         while (!str.equals("QUIT")){
+
+            str = scanner.nextLine();
+            System.out.println(str);
             
             if (str.equals("SYST")) {
                 output.write("215 UNIX system type \r\n".getBytes());
@@ -73,32 +78,49 @@ public class Main {
                 output.write("150 File status okay. \r\n".getBytes());
             }
             else if (str.equals("PASV")){
-                ServerSocket servDonnee = new ServerSocket(0);
-                Socket s = servDonnee.accept();
-                InputStream inputDonnee = s2.getInputStream();
-                OutputStream outputDonnee = s2.getOutputStream();
-
+                if (servDonnee != null && !servDonnee.isClosed()){
+                    servDonnee.close();
+                }
+                servDonnee = new ServerSocket(0);
+                
                 int p1 = servDonnee.getLocalPort()/256;
-                int p2 = servDonnee.getLocalPort() - p1;
+                int p2 = servDonnee.getLocalPort() % 256;
 
-                output.write("227 Entering Passive Mode (127,0,0,1,p1,p2) \r\n".getBytes());
+                //outputDonnee.write("220 connection établie \r\n".getBytes());
 
-                servDonnee.close();
-                s.close();
+                output.write(("227 Entering Passive Mode (127,0,0,1,"+ p1 +","+ p2 +") \r\n").getBytes());
+            
             }
             else if (str.substring(0,4).equals("RETR")){
+                Socket s = servDonnee.accept();
                 File f = new File(str.substring(5)); 
-                if (f.exists()){
+
+                //InputStream inputData = s.getInputStream();
+                OutputStream outputData = s.getOutputStream();
+                
+                if (f.exists() && f.isFile()){
                     output.write("150 File status okay. \r\n".getBytes());
+
+                    try (InputStream fileInput = new FileInputStream(f)) {
+                        byte[] buffer = new byte[4096];
+                        int bytesRead;
+                        while ((bytesRead = fileInput.read(buffer)) != -1) {
+                            outputData.write(buffer, 0, bytesRead);
+                        }
+                        outputData.flush();
+                    }
+                
+                    output.write("226 Closing data connection. \r\n".getBytes());
                     continue;
                 }
                 else{
-                    output.write("226 Closing data connection. \r\n".getBytes());
+                    output.write("551 File Not Found or invalid \r\n".getBytes());
                 }
+                output.write("226 Closing data connection. \r\n".getBytes());
+                    s.close();
             }
 
-            str = scanner.nextLine();
-            System.out.println(str);
+           
     }
         scanner.close();
         s2.close();
