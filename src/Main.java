@@ -111,13 +111,45 @@ public class Main {
                     }
                 
                     output.write("226 Closing data connection. \r\n".getBytes());
-                    continue;
+                    s.close();
                 }
                 else{
                     output.write("551 File Not Found or invalid \r\n".getBytes());
                 }
+            }
+
+            else if (str.substring(0,4).equals("LIST")){
+                Socket s = servDonnee.accept();
+                OutputStream outputData = s.getOutputStream();
+                String[] tab = new String[0] ;
+
+                output.write("150 File status okay. \r\n".getBytes());
+
+                try {
+                    if (!str.substring(5).contains("*")){
+                        System.out.println("ok");
+                        File f = new File(str.substring(5)); 
+                        tab = f.list();
+                        System.out.println(tab);
+                        
+                    }
+                    else {
+                        System.out.println("*");
+                    }
+                }
+                catch(IndexOutOfBoundsException e ){
+                    File f = new File("./"); 
+                    tab = f.list();    
+                } 
+
+                for (int i=0;i<tab.length;i++){
+                    System.out.println(tab[i]);
+                    outputData.write((tab[i]+"\n").getBytes());
+                }
+                outputData.flush();
+                
                 output.write("226 Closing data connection. \r\n".getBytes());
-                    s.close();
+                s.close();
             }
 
            
@@ -125,6 +157,8 @@ public class Main {
         scanner.close();
         s2.close();
         serv.close();
+        servDonnee.close();
+    
 }
 }
 
