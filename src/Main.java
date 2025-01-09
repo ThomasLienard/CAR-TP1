@@ -135,6 +135,7 @@ public class Main {
                     }
                     else {
                         System.out.println("*");
+                        output.write("551 File Not Found or invalid \r\n".getBytes());
                     }
                 }
                 catch(IndexOutOfBoundsException e ){
@@ -146,7 +147,7 @@ public class Main {
                     System.out.println(tab[i]);
                     outputData.write((tab[i]+"\n").getBytes());
                 }
-                outputData.flush();
+            
                 
                 output.write("226 Closing data connection. \r\n".getBytes());
                 s.close();
